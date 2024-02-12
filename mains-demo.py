@@ -17,7 +17,7 @@ def add_prediction_lines(fig, df, month, predicted_values):
                         mode='lines+markers+text', text=[None, predicted_values[i]],
                         textposition='top center', name=f'Predicted {col}')
 
- # Define a function to add only the predicted points
+# Define a function to add only the predicted points
 def add_prediction_points(fig, month, predicted_values):
     for i, col in enumerate(['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs']):
         fig.add_scatter(x=[month], y=[predicted_values[i]], mode='markers+text',
