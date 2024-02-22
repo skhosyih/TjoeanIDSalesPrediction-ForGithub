@@ -37,7 +37,7 @@ def add_prediction_points(fig, month, predicted_values):
                         text=[predicted_values[i]], textposition='top center', name=f'Predicted {col}')
 
 # Load the model
-model = pickle.load(open('models/model_3B.pkl', 'rb'))
+model = pickle.load(open('models/model_1A.pkl', 'rb'))
 
 # Page Configuration 
 # To define settings for the app by giving it a page title and icon that are displayed on the browser
