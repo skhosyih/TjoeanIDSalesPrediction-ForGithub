@@ -36,4 +36,4 @@ python -m pip install -r requirements.txt
 
 ## See the project on website
 
-You can see the project based on `mains-demo.py` in this [website](https://tjoeanid-demo.streamlit.app/)
+You can see the project based on `mains-demo_v2B.py` in this [website](https://tjoeanid-demo-v2b.streamlit.app/)
