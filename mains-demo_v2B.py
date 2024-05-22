@@ -7,7 +7,7 @@ from fpdf import FPDF
 import tempfile
 
 # Load the model
-model = pickle.load(open('models/model_1A.pkl', 'rb'))
+model = pickle.load(open(r'models/model_1A.pkl', 'rb'))
 
 # Page Configuration 
 st.set_page_config(
