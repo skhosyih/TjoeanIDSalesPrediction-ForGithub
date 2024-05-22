@@ -7,7 +7,7 @@ from fpdf import FPDF
 import tempfile
 
 # Load the model
-model = pickle.load(open(r'models/model_1A.pkl', 'rb'))
+model = pickle.load(open('models/model_1A.pkl', 'rb'))
 
 # Page Configuration 
 st.set_page_config(
@@ -122,7 +122,12 @@ def main():
     
     month = st.sidebar.number_input('Enter the month to predict the sales', min_value=1, value=1, step=1)
     if st.sidebar.button('Predict Sales'):
-        predicted_values = perform_prediction(month)
+        st.session_state.predicted_values = perform_prediction(month)
+        st.session_state.predicted_month = month
+
+    if 'predicted_values' in st.session_state:
+        predicted_values = st.session_state.predicted_values
+        month = st.session_state.predicted_month
         fig = plot_bar_chart(df)
         
         # Define a variable to add the predicted sales data as points and lines
