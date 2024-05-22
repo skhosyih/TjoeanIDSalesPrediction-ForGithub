@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # Define all functions at the top
-# Define a function to draw the bar chart
+# Define a function to draw the bar chart with wider bars and enable scrolling
 def plot_bar_chart(data, title='Monthly Sales Data'):
     melted_data = data.melt(id_vars='Month', value_vars=['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
                             var_name='Product', value_name='Sales')
@@ -28,34 +28,24 @@ def plot_bar_chart(data, title='Monthly Sales Data'):
         y='Sales',
         color='Product',
         barmode='group',
-        title=title
+        title=title,
+        text='Sales'
     )
     fig.update_layout(
-        xaxis=dict(tickmode='linear'),
-        bargap=0.15,
-        bargroupgap=0.1
+        xaxis=dict(tickmode='linear', dtick=1),
+        bargap=0.05,  # reduce gap between bars
+        bargroupgap=0.05,  # reduce gap between groups
+        width=1800,  # make the figure wider
+        height=600
     )
-    fig.update_xaxes(tickangle=-45)
+    fig.update_xaxes(range=[0, 10])  # show only the first 10 months by default
     fig.update_yaxes(automargin=True)
-    fig.update_layout(width=1200, height=600)
     return fig
 
 # Define a function to perform prediction
 def perform_prediction(month):
     prediction = model.predict([[month]])
     return [ceil(value) for value in prediction[0]]
-
-# Define a function to add only the predicted points and or to add the predicted sales data as points and lines
-def add_prediction_to_chart(fig, df, month, predicted_values, extend_line=False):
-    products = ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs']
-    for i, col in enumerate(products):
-        x_values = [month] if not extend_line else [df['Month'].iloc[-1], month]
-        y_values = [predicted_values[i]] if not extend_line else [df[col].iloc[-1], predicted_values[i]]
-        fig.add_scatter(
-            x=x_values, y=y_values, mode='lines+markers+text',
-            text=[None, predicted_values[i]] if extend_line else [predicted_values[i]],
-            textposition='top center', name=f'Predicted {col}'
-        )
 
 # Define a function to generate a PDF report
 def generate_pdf_report(df, predicted_values, month):
@@ -130,18 +120,23 @@ def main():
         month = st.session_state.predicted_month
         fig = plot_bar_chart(df)
         
-        # Define a variable to add the predicted sales data as points and lines
-        extend_line = month > df['Month'].max()
-        
-        add_prediction_to_chart(fig, df, month, predicted_values, extend_line)
         st.plotly_chart(fig, use_container_width=True)
         
+        # Display the predicted sales data in a bar chart
+        st.subheader("Predicted Sales Data")
+        predicted_df = pd.DataFrame({
+            'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
+            'Predicted Sales': predicted_values
+        })
+        predicted_fig = px.bar(predicted_df, x='Product', y='Predicted Sales', color='Product', text='Predicted Sales', title='Predicted Sales Data')
+        predicted_fig.update_layout(width=600, height=400)
+        st.plotly_chart(predicted_fig, use_container_width=True)
         st.subheader(f"Predicted Sales for Month {month}:")
         prediction_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
             'Predicted Sales': predicted_values
         })
-        st.table(prediction_df)
+        st.markdown(prediction_df.style.hide(axis="index").to_html(), unsafe_allow_html=True)
         
         # Generate PDF report
         if st.sidebar.button('Generate PDF Report'):
@@ -153,6 +148,7 @@ def main():
                     file_name="sales_prediction_report.pdf",
                     mime="application/pdf"
                 )
+
 
 if __name__ == "__main__":
     main()
