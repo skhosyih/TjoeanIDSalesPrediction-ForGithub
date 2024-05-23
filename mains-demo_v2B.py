@@ -3,13 +3,14 @@ import pickle
 import pandas as pd
 import plotly.express as px
 from math import ceil
-from fpdf import FPDF
+import matplotlib.pyplot as plt
 import tempfile
+from fpdf import FPDF
 
 # Load the model
 model = pickle.load(open('models/model_1A.pkl', 'rb'))
 
-# Page Configuration 
+# Page Configuration
 st.set_page_config(
     page_title="Tjoean's Sales Prediction",
     page_icon="🍴",
@@ -41,6 +42,23 @@ def plot_bar_chart(data, title='Monthly Sales Data'):
     fig.update_xaxes(range=[0, 10])  # show only the first 10 months by default
     fig.update_yaxes(automargin=True)
     return fig
+
+def save_bar_chart(data, filename, title='Chart', xaxis_title='Product', yaxis_title='Sales'):
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(data['Product'], data['Sales'], color=['blue', 'orange', 'green', 'red'])
+    plt.xlabel(xaxis_title)
+    plt.ylabel(yaxis_title)
+    plt.title(title)
+    plt.xticks(rotation=45, ha='right')
+    
+    # Adding labels on the bars
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval, int(yval), va='bottom')  # va: vertical alignment
+    
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
 
 # Define a function to perform prediction
 def perform_prediction(month):
@@ -96,6 +114,23 @@ def generate_pdf_report(df, predicted_values, month):
     for i, col in enumerate(products):
         pdf.cell(col_width, 10, str(predicted_values[i]), border=1)
     pdf.ln(10)
+
+    # Add the predicted sales chart image
+    predicted_chart_path = tempfile.NamedTemporaryFile(delete=False, suffix='.png').name
+    
+    # Save the predicted sales bar chart
+    save_bar_chart(
+        data=pd.DataFrame({
+            'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
+            'Sales': predicted_values
+        }),
+        filename=predicted_chart_path,
+        title='Predicted Sales Data'
+    )
+    pdf.ln(10)
+    pdf.cell(200, 10, txt=f"Predicted Sales Data Chart for Month {month}:", ln=True)
+    pdf.image(predicted_chart_path, x=10, y=pdf.get_y(), w=pdf.w - 20)
+    pdf.ln(85)
     
     # Add previous and next month predictions
     previous_month = month - 1
@@ -103,7 +138,7 @@ def generate_pdf_report(df, predicted_values, month):
     
     if previous_month > 0:
         previous_predicted_values = perform_prediction(previous_month)
-        pdf.ln(10)
+        pdf.ln(50)
         pdf.cell(200, 10, txt=f"Predicted Sales for Previous Month ({previous_month}):", ln=True)
         
         # Table Header for Previous Month Predicted Sales
@@ -169,7 +204,6 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
         
         # Display the predicted sales data in a bar chart
-        # st.subheader("Predicted Sales Data")
         predicted_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
             'Predicted Sales': predicted_values
