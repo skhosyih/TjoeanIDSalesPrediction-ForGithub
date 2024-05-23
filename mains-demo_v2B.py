@@ -5,12 +5,11 @@ import plotly.express as px
 from math import ceil
 from fpdf import FPDF
 import tempfile
-import matplotlib.pyplot as plt
 
 # Load the model
 model = pickle.load(open('models/model_1A.pkl', 'rb'))
 
-# Page Configuration
+# Page Configuration 
 st.set_page_config(
     page_title="Tjoean's Sales Prediction",
     page_icon="🍴",
@@ -49,7 +48,7 @@ def perform_prediction(month):
     return [ceil(value) for value in prediction[0]]
 
 # Define a function to generate a PDF report
-def generate_pdf_report(df, predicted_values, month, chart_path):
+def generate_pdf_report(df, predicted_values, month):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -87,6 +86,7 @@ def generate_pdf_report(df, predicted_values, month, chart_path):
     
     # Table Header for Predicted Sales
     pdf.set_font('Arial', 'B', 9)
+    headers = ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs']
     for header in headers:
         pdf.cell(col_width, 10, header, border=1)
     pdf.ln(10)
@@ -134,10 +134,6 @@ def generate_pdf_report(df, predicted_values, month, chart_path):
         pdf.cell(col_width, 10, str(next_predicted_values[i]), border=1)
     pdf.ln(10)
     
-    # Add the chart image
-    pdf.ln(10)
-    pdf.image(chart_path, x=None, y=None, w=pdf.w / 2)
-    
     # Save the PDF to a temporary file
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     pdf.output(temp_file.name)
@@ -173,6 +169,7 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
         
         # Display the predicted sales data in a bar chart
+        # st.subheader("Predicted Sales Data")
         predicted_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
             'Predicted Sales': predicted_values
@@ -187,19 +184,9 @@ def main():
         })
         st.markdown(prediction_df.style.hide(axis="index").to_html(), unsafe_allow_html=True)
         
-        # Save the bar chart image
-        chart_path = 'chart.png'
-        plt.figure()
-        plt.bar(predicted_df['Product'], predicted_df['Predicted Sales'], color=['blue', 'orange', 'green', 'red'])
-        plt.xlabel('Product')
-        plt.ylabel('Predicted Sales')
-        plt.title('Predicted Sales Data')
-        plt.savefig(chart_path)
-        plt.close()
-
         # Generate PDF report
         if st.sidebar.button('Generate PDF Report'):
-            pdf_path = generate_pdf_report(df, predicted_values, month, chart_path)
+            pdf_path = generate_pdf_report(df, predicted_values, month)
             with open(pdf_path, "rb") as pdf_file:
                 st.sidebar.download_button(
                     label="Download PDF Report",
