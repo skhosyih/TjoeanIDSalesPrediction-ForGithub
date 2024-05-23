@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Load the model
 model = pickle.load(open('models/model_1A.pkl', 'rb'))
 
-# Page Configuration 
+# Page Configuration
 st.set_page_config(
     page_title="Tjoean's Sales Prediction",
     page_icon="🍴",
@@ -48,12 +48,8 @@ def perform_prediction(month):
     prediction = model.predict([[month]])
     return [ceil(value) for value in prediction[0]]
 
-# Define a function to save the bar chart as an image
-def save_bar_chart(fig, filename):
-    fig.write_image(filename)
-
 # Define a function to generate a PDF report
-def generate_pdf_report(df, predicted_values, month):
+def generate_pdf_report(df, predicted_values, month, chart_path):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -65,16 +61,41 @@ def generate_pdf_report(df, predicted_values, month):
     pdf.ln(10)
     pdf.cell(200, 10, txt="Sales Data:", ln=True)
     
+    # Table Header
+    pdf.set_font('Arial', 'B', 9)
+    headers = ['Month', 'Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs']
+    col_width = pdf.w / 5.5  # Equal width for each column
+    for header in headers:
+        pdf.cell(col_width, 10, header, border=1)
+    pdf.ln(10)
+    
+    # Table contents
+    pdf.set_font('Arial', '', 9)
     for i in range(len(df)):
-        row = df.iloc[i]
-        pdf.cell(200, 10, txt=f"Month: {row['Month']}, Shumai 10 Pcs: {row['Shumai 10 Pcs']}, Shumai 20 Pcs: {row['Shumai 20 Pcs']}, Shumai 30 Pcs: {row['Shumai 30 Pcs']}, Chicken Lumpia 10 Pcs: {row['Chicken Lumpia 10 Pcs']}", ln=True)
+        pdf.cell(col_width, 10, str(df['Month'].iloc[i]), border=1)
+        pdf.cell(col_width, 10, str(df['Shumai 10 Pcs'].iloc[i]), border=1)
+        pdf.cell(col_width, 10, str(df['Shumai 20 Pcs'].iloc[i]), border=1)
+        pdf.cell(col_width, 10, str(df['Shumai 30 Pcs'].iloc[i]), border=1)
+        pdf.cell(col_width, 10, str(df['Chicken Lumpia 10 Pcs'].iloc[i]), border=1)
+        pdf.ln(10)
     
     # Add the predicted sales table
     pdf.ln(10)
     pdf.cell(200, 10, txt=f"Predicted Sales for Month {month}:", ln=True)
+    
     products = ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs']
+    
+    # Table Header for Predicted Sales
+    pdf.set_font('Arial', 'B', 9)
+    for header in headers:
+        pdf.cell(col_width, 10, header, border=1)
+    pdf.ln(10)
+    
+    # Table contents for Predicted Sales
+    pdf.set_font('Arial', '', 9)
     for i, col in enumerate(products):
-        pdf.cell(200, 10, txt=f"{col}: {predicted_values[i]}", ln=True)
+        pdf.cell(col_width, 10, str(predicted_values[i]), border=1)
+    pdf.ln(10)
     
     # Add previous and next month predictions
     previous_month = month - 1
@@ -84,23 +105,38 @@ def generate_pdf_report(df, predicted_values, month):
         previous_predicted_values = perform_prediction(previous_month)
         pdf.ln(10)
         pdf.cell(200, 10, txt=f"Predicted Sales for Previous Month ({previous_month}):", ln=True)
+        
+        # Table Header for Previous Month Predicted Sales
+        pdf.set_font('Arial', 'B', 9)
+        for header in headers:
+            pdf.cell(col_width, 10, header, border=1)
+        pdf.ln(10)
+        
+        # Table contents for Previous Month Predicted Sales
+        pdf.set_font('Arial', '', 9)
         for i, col in enumerate(products):
-            pdf.cell(200, 10, txt=f"{col}: {previous_predicted_values[i]}", ln=True)
+            pdf.cell(col_width, 10, str(previous_predicted_values[i]), border=1)
+        pdf.ln(10)
     
     next_predicted_values = perform_prediction(next_month)
     pdf.ln(10)
     pdf.cell(200, 10, txt=f"Predicted Sales for Next Month ({next_month}):", ln=True)
+    
+    # Table Header for Next Month Predicted Sales
+    pdf.set_font('Arial', 'B', 9)
+    for header in headers:
+        pdf.cell(col_width, 10, header, border=1)
+    pdf.ln(10)
+    
+    # Table contents for Next Month Predicted Sales
+    pdf.set_font('Arial', '', 9)
     for i, col in enumerate(products):
-        pdf.cell(200, 10, txt=f"{col}: {next_predicted_values[i]}", ln=True)
-    
-    # Add bar chart images to the PDF
+        pdf.cell(col_width, 10, str(next_predicted_values[i]), border=1)
     pdf.ln(10)
-    pdf.cell(200, 10, txt="Monthly Sales Data:", ln=True)
-    pdf.image('monthly_sales_chart.png', x=10, w=pdf.w - 20)
     
+    # Add the chart image
     pdf.ln(10)
-    pdf.cell(200, 10, txt="Predicted Sales Data:", ln=True)
-    pdf.image('predicted_sales_chart.png', x=10, w=pdf.w - 20)
+    pdf.image(chart_path, x=None, y=None, w=pdf.w / 2)
     
     # Save the PDF to a temporary file
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
@@ -137,7 +173,6 @@ def main():
         st.plotly_chart(fig, use_container_width=True)
         
         # Display the predicted sales data in a bar chart
-        st.subheader("Predicted Sales Data")
         predicted_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
             'Predicted Sales': predicted_values
@@ -145,11 +180,6 @@ def main():
         predicted_fig = px.bar(predicted_df, x='Product', y='Predicted Sales', color='Product', text='Predicted Sales', title='Predicted Sales Data')
         predicted_fig.update_layout(width=600, height=400)
         st.plotly_chart(predicted_fig, use_container_width=True)
-        
-        # Save bar charts as images
-        save_bar_chart(fig, 'monthly_sales_chart.png')
-        save_bar_chart(predicted_fig, 'predicted_sales_chart.png')
-        
         st.markdown(f"**Predicted Sales for Month {month}:**")
         prediction_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
@@ -157,9 +187,19 @@ def main():
         })
         st.markdown(prediction_df.style.hide(axis="index").to_html(), unsafe_allow_html=True)
         
+        # Save the bar chart image
+        chart_path = 'chart.png'
+        plt.figure()
+        plt.bar(predicted_df['Product'], predicted_df['Predicted Sales'], color=['blue', 'orange', 'green', 'red'])
+        plt.xlabel('Product')
+        plt.ylabel('Predicted Sales')
+        plt.title('Predicted Sales Data')
+        plt.savefig(chart_path)
+        plt.close()
+
         # Generate PDF report
         if st.sidebar.button('Generate PDF Report'):
-            pdf_path = generate_pdf_report(df, predicted_values, month)
+            pdf_path = generate_pdf_report(df, predicted_values, month, chart_path)
             with open(pdf_path, "rb") as pdf_file:
                 st.sidebar.download_button(
                     label="Download PDF Report",
