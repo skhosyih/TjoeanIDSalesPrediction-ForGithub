@@ -5,6 +5,7 @@ import plotly.express as px
 from math import ceil
 from fpdf import FPDF
 import tempfile
+import matplotlib.pyplot as plt
 
 # Load the model
 model = pickle.load(open('models/model_1A.pkl', 'rb'))
@@ -47,6 +48,10 @@ def perform_prediction(month):
     prediction = model.predict([[month]])
     return [ceil(value) for value in prediction[0]]
 
+# Define a function to save the bar chart as an image
+def save_bar_chart(fig, filename):
+    fig.write_image(filename)
+
 # Define a function to generate a PDF report
 def generate_pdf_report(df, predicted_values, month):
     pdf = FPDF()
@@ -87,6 +92,15 @@ def generate_pdf_report(df, predicted_values, month):
     pdf.cell(200, 10, txt=f"Predicted Sales for Next Month ({next_month}):", ln=True)
     for i, col in enumerate(products):
         pdf.cell(200, 10, txt=f"{col}: {next_predicted_values[i]}", ln=True)
+    
+    # Add bar chart images to the PDF
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="Monthly Sales Data:", ln=True)
+    pdf.image('monthly_sales_chart.png', x=10, w=pdf.w - 20)
+    
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="Predicted Sales Data:", ln=True)
+    pdf.image('predicted_sales_chart.png', x=10, w=pdf.w - 20)
     
     # Save the PDF to a temporary file
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
@@ -131,7 +145,12 @@ def main():
         predicted_fig = px.bar(predicted_df, x='Product', y='Predicted Sales', color='Product', text='Predicted Sales', title='Predicted Sales Data')
         predicted_fig.update_layout(width=600, height=400)
         st.plotly_chart(predicted_fig, use_container_width=True)
-        st.subheader(f"Predicted Sales for Month {month}:")
+        
+        # Save bar charts as images
+        save_bar_chart(fig, 'monthly_sales_chart.png')
+        save_bar_chart(predicted_fig, 'predicted_sales_chart.png')
+        
+        st.markdown(f"**Predicted Sales for Month {month}:**")
         prediction_df = pd.DataFrame({
             'Product': ['Shumai 10 Pcs', 'Shumai 20 Pcs', 'Shumai 30 Pcs', 'Chicken Lumpia 10 Pcs'],
             'Predicted Sales': predicted_values
@@ -148,7 +167,6 @@ def main():
                     file_name="sales_prediction_report.pdf",
                     mime="application/pdf"
                 )
-
 
 if __name__ == "__main__":
     main()
